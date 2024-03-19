@@ -2,7 +2,7 @@ use core::fmt;
 use std::cmp::{max, min};
 use std::fmt::{Display, Formatter};
 use std::io::prelude::*;
-use std::iter::repeat;
+use std::ops::Index;
 use std::{
     fs::File,
     io::{self, BufReader, Error},
@@ -20,7 +20,7 @@ struct Args {
     puzzle: String,
 }
 
-struct Sudoku {
+pub struct Sudoku {
     name: String,
     width: usize,
     height: usize,
@@ -111,6 +111,45 @@ impl Sudoku {
             grid,
         })
     }
+
+    /// Return box index (b,c) of element (i,j),
+    /// where b is the box number and c is cell number in the box.
+    pub fn box_index(&self, i: usize, j: usize) -> (usize, usize) {
+        let c = {
+            let y = i % self.box_height;
+            let x = j % self.box_width;
+            y * self.box_width + x
+        };
+        let b = {
+            let y = i / self.box_height;
+            let x = j / self.box_width;
+            y * self.width / self.box_width + x
+        };
+
+        (b, c)
+    }
+
+    /// Reverse of box_index()
+    pub fn grid_index(&self, b: usize, c: usize) -> (usize, usize) {
+        let by = b / (self.width / self.box_width);
+        let bx = b % (self.width / self.box_width);
+        let cy = c / self.box_width;
+        let cx = c % self.box_width;
+
+        (by * self.box_height + cy, bx * self.box_width + cx)
+    }
+
+    /// self[self.grid_index(b,c)]
+    pub fn box_cell(&self, b: usize, c: usize) -> u8 {
+        self[self.grid_index(b, c)]
+    }
+}
+
+impl Index<(usize, usize)> for Sudoku {
+    type Output = u8;
+    fn index(&self, (i, j): (usize, usize)) -> &Self::Output {
+        &self.grid[i * self.width + j]
+    }
 }
 
 impl Display for Sudoku {
@@ -142,11 +181,11 @@ impl Display for Sudoku {
             for j in 0..self.box_height {
                 write!(f, "\n|")?;
                 for k in 0..self.width / self.box_width {
-                    let base = (i * self.box_height + j) * self.box_width + self.box_width * k;
+                    let base = (i * self.box_height + j) * self.width + self.box_width * k;
                     let seg: String = self.grid[base..base + self.box_width]
                         .iter()
                         .map(|c| to_char(*c))
-                        .flat_map(|c| [c,' '])
+                        .flat_map(|c| [c, ' '])
                         .collect();
                     write!(f, "{}|", seg)?;
                 }
@@ -164,6 +203,8 @@ fn main() -> io::Result<()> {
     println!("Loading {}", &args.puzzle);
     let sudoku = Sudoku::read_from_file(&args.puzzle)?;
     println!("{}", sudoku);
+
+    checker::check(&sudoku);
 
     Ok(())
 }
