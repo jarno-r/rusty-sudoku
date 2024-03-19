@@ -8,6 +8,8 @@ use std::{
 
 use clap::Parser;
 
+mod checker;
+
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
 struct Args {
@@ -29,7 +31,7 @@ impl Sudoku {
                 ascii - b'0'
             } else if ascii.is_ascii_lowercase() {
                 ascii - b'a' + 10
-            } else if ascii == b' ' || ascii == b'\t' {
+            } else if ascii == b' ' {
                 0
             } else {
                 Err(Error::other(format!(
@@ -46,10 +48,9 @@ impl Sudoku {
         let mut max_width = 0;
         let mut height = 0;
         let mut raw_lines = vec![vec![0u8; 0];0];
-        let mut nonempty_cols = vec![false; 0];
         for (i, line) in f.lines().enumerate() {
             let line = line?;
-            let raw = line.trim_end();
+            let raw = line;
 
             // Do not count empty lines at the end of file.
             if !raw.is_empty() {
@@ -60,30 +61,22 @@ impl Sudoku {
                 .to_ascii_lowercase()
                 .as_bytes()
                 .iter()
+                .filter(|c| **c != b'\t')
                 .map(|c| to_num(*c))
                 .collect::<io::Result<_>>()?;
 
             max_width = max(max_width, row.len());
-            nonempty_cols.resize(max_width, false);
-            for (i, v) in row.iter().enumerate() {
-                if *v > 0 {
-                    nonempty_cols[i] = true;
-                }
-            }
             raw_lines.push(row);
         }
 
-        let width = nonempty_cols.iter().filter(|x| **x).count();
+        let width = max_width;
         let mut grid = vec![0u8; width * height];
 
         for i in 0..height {
             let mut p = 0;
             for j in 0..width {
-                while !nonempty_cols[p] {
-                    p += 1
-                }
-                if raw_lines[i].len() > p {
-                    grid[i * width + j] = raw_lines[i][p];
+                if raw_lines[i].len() > j {
+                    grid[i * width + j] = raw_lines[i][j];
                 }
                 p+=1;
             }
