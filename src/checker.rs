@@ -1,27 +1,42 @@
 use crate::Sudoku;
 
+#[derive(Copy, Clone)]
+pub enum FailureMode {
+    Row,
+    Col,
+    Box,
+}
+
+pub fn check_cell(sudoku: &Sudoku, i: usize, j: usize) -> Option<(usize, usize, FailureMode)> {
+    for k in 0..sudoku.size() {
+        if k != i && sudoku[(i, j)] == sudoku[(k, j)] {
+            return Some((i, j, FailureMode::Row));
+        }
+
+        if k != j && sudoku[(i, j)] == sudoku[(i, k)] {
+            return Some((i, j, FailureMode::Col));
+        }
+
+        let (b, c) = sudoku.box_index(i, j);
+        if k != c && sudoku[(i, j)] == sudoku.box_cell(b, k) {
+            return Some((i, j, FailureMode::Box));
+        }
+    }
+    None
+}
+
 pub fn check(sudoku: &Sudoku) -> () {
     let mut incomplete = false;
-    let mut failure: Option<(usize, usize, &str)> = None;
+    let mut failure: Option<(usize, usize, FailureMode)> = None;
 
-    for i in 0..sudoku.width {
-        for j in 0..sudoku.height {
+    'label: for i in 0..sudoku.size() {
+        for j in 0..sudoku.size() {
             if sudoku[(i, j)] == 0 {
                 incomplete = true;
             } else {
-                for k in 0..sudoku.width {
-                    if k != i && sudoku[(i, j)] == sudoku[(k, j)] {
-                        failure = Some((i, j, "row"));
-                    }
-
-                    if k != j && sudoku[(i, j)] == sudoku[(i, k)] {
-                        failure = Some((i, j, "column"));
-                    }
-
-                    let (b, c) = sudoku.box_index(i, j);
-                    if k != c && sudoku[(i, j)] == sudoku.box_cell(b, k) {
-                        failure = Some((i, j, "box"));
-                    }
+                failure = check_cell(sudoku, i, j);
+                if failure.is_some() {
+                    break 'label;
                 }
             }
         }
@@ -33,7 +48,11 @@ pub fn check(sudoku: &Sudoku) -> () {
             sudoku[(i, j)],
             i + 1,
             j + 1,
-            kind
+            match kind {
+                FailureMode::Row => "row",
+                FailureMode::Col => "column",
+                FailureMode::Box => "box",
+            }
         ),
         _ => (),
     }
@@ -42,7 +61,7 @@ pub fn check(sudoku: &Sudoku) -> () {
         println!("Sudoku is incomplete!");
     }
 
-    if !incomplete && failure==None {
+    if !incomplete && failure.is_none() {
         println!("Sudoku is correct!");
     }
 }
