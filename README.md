@@ -190,7 +190,7 @@ if let Str(ref innards) = x {
 }
 ````
 
-The above example does not compile, but if a raw pointer is used for `y`, the program will segfault. The issue with the example is that the `if let` is committed to `x` being `Str(_)`, taking a reference to the innards, but the structure of `x` is modified so that the reference `innards` becomes invalid. This cannot be fixed by simply telling the compiler that references might be aliased. Once the execution hits ´*y=Int(1)`, the previous pattern match becomes invalid and the execution shouldn't be inside the then-block, causing a contradiction that the compiler cannot resolve.
+The above example does not compile, but if a raw pointer is used for `y`, the program will segfault. The issue with the example is that the `if let` is committed to `x` being `Str(_)`, taking a reference to the innards, but the structure of `x` is modified so that the reference `innards` becomes invalid. This cannot be fixed by simply telling the compiler that references might be aliased. Once the execution hits `*y=Int(1)`, the previous pattern match becomes invalid and the execution shouldn't be inside the then-block, causing a contradiction that the compiler cannot resolve.
 
 On the other hand, it is clear that shared mutability is not always unsafe and can be quite useful.
 
